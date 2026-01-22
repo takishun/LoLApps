@@ -1,5 +1,8 @@
 import streamlit as st
 import random
+import json
+import os
+from pathlib import Path
 
 # LoLの装備データ（アイテム名と金額）
 EQUIPMENT_DATA = {
@@ -80,6 +83,39 @@ EQUIPMENT_DATA = {
     "モビリティ・ブーツ": 900,
 }
 
+# アクセスカウンター関連
+ACCESS_COUNTER_FILE = Path("access_counter.json")
+
+def load_access_count():
+    """アクセスカウントを読み込む"""
+    if ACCESS_COUNTER_FILE.exists():
+        try:
+            with open(ACCESS_COUNTER_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                return data.get('count', 0)
+        except Exception:
+            return 0
+    return 0
+
+def save_access_count(count):
+    """アクセスカウントを保存する"""
+    try:
+        with open(ACCESS_COUNTER_FILE, 'w', encoding='utf-8') as f:
+            json.dump({'count': count}, f)
+    except Exception:
+        pass
+
+def increment_access_count():
+    """アクセスカウントをインクリメント"""
+    if 'access_counted' not in st.session_state:
+        current_count = load_access_count()
+        new_count = current_count + 1
+        save_access_count(new_count)
+        st.session_state.access_counted = True
+        st.session_state.total_access_count = new_count
+    else:
+        st.session_state.total_access_count = load_access_count()
+
 def initialize_session_state():
     """セッション状態の初期化"""
     if 'score' not in st.session_state:
@@ -145,6 +181,7 @@ def main():
     )
 
     initialize_session_state()
+    increment_access_count()
 
     # ヘッダー
     st.title("⚔️ LoL 装備金額クイズ")
@@ -256,10 +293,14 @@ def main():
 
     # フッター
     st.divider()
+
+    # アクセスカウンター表示
+    access_count = st.session_state.get('total_access_count', 0)
     st.markdown(
-        """
+        f"""
         <div style='text-align: center; color: #666;'>
-            <small>League of Legends の装備金額を使用したクイズアプリです</small>
+            <small>League of Legends の装備金額を使用したクイズアプリです</small><br>
+            <small>👥 訪問者数: {access_count:,}</small>
         </div>
         """,
         unsafe_allow_html=True
